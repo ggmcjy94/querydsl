@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
-@Rollback(false)
 class QuerydslApplicationTests {
 
 //	@Autowired

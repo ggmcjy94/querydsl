@@ -1,4 +1,15 @@
+#Controller
+  #클라이언트의 요청을 받음
+  #요청에 대한 처리는 서비스에게 전담
+  #클라이언트에게 응답
 
+#Service
+  #사용자의 요구사항 처리
+  #DB 정보가 필요할 때는 Repository에게 전담
+
+#Repository
+  #DB 관리(연결, 해제, 자원 관리)
+  #DB CRUD 작업 처리
 spring:
   datasource:
     url: jdbc:h2:tcp://localhost/~/querydsl

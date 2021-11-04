@@ -2,13 +2,18 @@ package study.querydsl.repository;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPQLQuery;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
+import org.springframework.data.support.PageableExecutionUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
+import study.querydsl.entity.Member;
 
 import javax.persistence.EntityManager;
 import java.util.List;
@@ -17,9 +22,14 @@ import static org.springframework.util.StringUtils.hasText;
 import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
 
-public class MemberRepositoryImpl implements MemberRepositoryCustom{
+public class MemberRepositoryImpl implements MemberRepositoryCustom{ //extends QuerydslRepositorySupport
 
     private final JPAQueryFactory queryFactory;
+
+//    public MemberRepositoryImpl(EntityManager em) {
+//        super(Member.class);
+//        this.queryFactory = new JPAQueryFactory(em);
+//    }
 
     public MemberRepositoryImpl(EntityManager em) {
         this.queryFactory = new JPAQueryFactory(em);
@@ -27,6 +37,22 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 
     @Override
     public List<MemberTeamDto> search (MemberSearchCondition condition) {
+        //QuerydslRepositorySupport 이런식으로 사용가능
+//        List<MemberTeamDto> result = from(member) 
+//                .leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe()))
+//                .select(new QMemberTeamDto(
+//                        member.id.as("member_id"),
+//                        member.username,
+//                        member.age,
+//                        team.id.as("teamId"),
+//                        team.name.as("teamName")))
+//                .fetch();
+
         return queryFactory
                 .select(new QMemberTeamDto(
                         member.id.as("member_id"),
@@ -72,6 +98,30 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
 
     }
 
+
+//    public Page<MemberTeamDto> searchPageSimple2(MemberSearchCondition condition, Pageable pageable) {
+//        JPQLQuery<MemberTeamDto> jpaQuery = from(member).leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe())
+//                )
+//                .select(new QMemberTeamDto(
+//                        member.id.as("member_id"),
+//                        member.username,
+//                        member.age,
+//                        team.id.as("teamId"),
+//                        team.name.as("teamName")));
+//        JPQLQuery<MemberTeamDto> query = getQuerydsl().applyPagination(pageable, jpaQuery);
+//        querydsl.fetch();
+////        List<MemberTeamDto> content = results.getResults();
+////        long total = results.getTotal();
+//
+//        return new PageImpl<>(content, pageable, total);
+
+//    }
+
     @Override
     public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
         List<MemberTeamDto> content = queryFactory
@@ -93,7 +143,17 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        long total = queryFactory
+//        long total = queryFactory
+//                .select(member)
+//                .from(member)
+//                .leftJoin(member.team, team)
+//                .where(
+//                        usernameEq(condition.getUsername()),
+//                        teamNameEq(condition.getTeamName()),
+//                        ageGoe(condition.getAgeGoe()),
+//                        ageLoe(condition.getAgeLoe())
+//                ).fetchCount();
+        JPAQuery<Member> countQuery = queryFactory
                 .select(member)
                 .from(member)
                 .leftJoin(member.team, team)
@@ -102,9 +162,9 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                         teamNameEq(condition.getTeamName()),
                         ageGoe(condition.getAgeGoe()),
                         ageLoe(condition.getAgeLoe())
-                )
-                .fetchCount();
-        return new PageImpl<>(content, pageable, total);
+                );
+        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetchCount()); //countQuery.fetchCount() 카운트 쿼리 날리는지 안날리는 지 확인 해줌
+        //return new PageImpl<>(content, pageable, total);
     }
 
     // 재사용 조립가능 null 체크 조심
